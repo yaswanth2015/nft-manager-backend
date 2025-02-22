@@ -33,7 +33,6 @@ export function convertToJwt(id: string): string {
 
 userRouter.post("/signup", async (req, res) => {
     const data = await userSchema.safeParse(req.body)
-    console.log(req.body)
     if (data.success) {
         try {
             const user = data.data
@@ -45,7 +44,6 @@ userRouter.post("/signup", async (req, res) => {
             })
 
             const derivationPathForThisAccount = derivationPath.replace("x", `${userFromDB.id}`)
-            console.log(`derivation path ${derivationPathForThisAccount}`)
             const wallet = HDNodeWallet.fromPhrase(NEEMONICS, undefined, derivationPathForThisAccount)
             await prisma.user.update({
                 where: {

@@ -58,37 +58,52 @@ exports.tokenSchema = zod_1.default.object({
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use("/api/v1/user", user_routes_1.default);
+//Below is the auth middleware
 app.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
-    if (token) {
-        const decodeFromJson = parseInt((0, user_routes_1.decodeFromJWT)(token));
-        const data = zod_1.default.number().safeParse(decodeFromJson);
-        if (data.success) {
-            const user = yield prisma_1.prisma.user.findFirst({
-                where: {
-                    id: data.data
+    try {
+        if (token) {
+            const decodeFromJson = parseInt((0, user_routes_1.decodeFromJWT)(token));
+            const data = zod_1.default.number().safeParse(decodeFromJson);
+            if (data.success) {
+                const user = yield prisma_1.prisma.user.findFirst({
+                    where: {
+                        id: data.data
+                    }
+                });
+                if (user && user.privatekey !== null && user.publickey !== null && user.address !== null) {
+                    req.user = {
+                        id: user.id,
+                        email: user.email,
+                        privatekey: user.privatekey,
+                        publickey: user.publickey,
+                        address: user.address
+                    };
+                    next();
                 }
-            });
-            if (user) {
-                req.user = user;
-                next();
+                else {
+                    res.status(404).send({
+                        message: "User Not Found"
+                    });
+                }
             }
             else {
-                res.status(404).send({
-                    message: "User Not Found"
+                res.status(403).send({
+                    message: "Invalid Token"
                 });
             }
         }
         else {
             res.status(403).send({
-                message: "Invalid Token"
+                message: "Token is not present Please login"
             });
         }
     }
-    else {
-        res.status(403).send({
-            message: "Token is not present Please login"
+    catch (e) {
+        console.log(e);
+        res.status(500).send({
+            message: "Internal error"
         });
     }
 }));
@@ -96,8 +111,6 @@ app.use("/api/v1/eth", balances_1.default);
 app.use("/api/v1/collections", collections_1.default);
 //get all the nfts owned by user in any collection
 app.get("/api/v1/nfts");
-//send the nfts to other users inside same collection`
-app.post("/api/v1/collections/send/:collectionaddress");
 app.listen(3030, () => {
     console.log("Server Started Successfully");
 });
